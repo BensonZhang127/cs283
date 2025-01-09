@@ -1,1 +1,3 @@
-some text
+git add -A .
+git commit -a -m "commit msg"
+git push
