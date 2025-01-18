@@ -282,18 +282,8 @@ int replace_target_string(char *buff, int len, int str_len, char *target, char *
             index++;
         }
 
-        // copy the rest (while being careful not to copy last word when itself is being replaced)
-        // str_len - target_len + replace_len > len
-        // for (int i = target_starting_index + target_len; i < str_len; i++) {
-
-        printf("%d\n", index);
-        printf("%d\n", str_len);
-        printf("%d\n", target_len);
-        printf("%d\n", replace_len);
-        printf("%d\n", target_starting_index + target_len);
-        
-
-        for (int i = target_starting_index + target_len; i < str_len - index - target_len + replace_len; i++) {
+        // copy the rest
+        for (int i = target_starting_index + target_len; i < str_len; i++) {
             *(new_string + index) = *(buff + i);            
             index++;
         }
@@ -302,18 +292,17 @@ int replace_target_string(char *buff, int len, int str_len, char *target, char *
         *(new_string + index) = '\0';
 
     } 
-  
+
+
+    // remove buffer
+    for (int i = 0; i < str_len; i++) {
+        *(buff + i) = '.';
+    }
 
     // copy modified string back to buffer (for test case)
     for (int i = 0; i < index; i++) {
         *(buff + i) = *(new_string + i);
     }
-
-    for (int i = index; i < str_len; i++) {
-        *(buff + i) = '.';
-    }
-
-    
     // printf("Modified String: ");
     // printf("%s\n", new_string);
 
