@@ -25,19 +25,13 @@ int setup_buff(char *buff, char *user_str, int len){
     char *user_str_ptr = user_str; // pointer for user_str
     int user_str_len = 0;
 
-    while (*user_str_ptr != '\0') { // count len of user_str
-        user_str_len++; 
-        user_str_ptr++; 
-    }    
+    // while (*user_str_ptr != '\0') { // count len of user_str
+        // user_str_len++; 
+        // user_str_ptr++; 
+    // }    
 
-    // if counter > len, return -1
-    if (user_str_len > len) { 
-        return -1; 
-        // -1 = The user supplied string is too large. 
-        //In other words the user supplied string > BUFFER_SZ
-    }
 
-    user_str_ptr = user_str; // Reset to the beginning of the string
+    // user_str_ptr = user_str; // Reset to the beginning of the string
 
     // plan:
     // if character = add
@@ -67,6 +61,14 @@ int setup_buff(char *buff, char *user_str, int len){
         user_str_ptr++; 
     }
 
+    // if counter > len, return -1
+    if (count_buff > len) { 
+        return -1; 
+        // -1 = The user supplied string is too large. 
+        //In other words the user supplied string > BUFFER_SZ
+    }
+
+
 
     // Fill the remaining buffer with .
     while (buff_ptr < buff + len) {
@@ -81,10 +83,11 @@ int setup_buff(char *buff, char *user_str, int len){
 
 
 void print_buff(char *buff, int len){
-    printf("Buffer:  ");
+    printf("Buffer:  [");
     for (int i=0; i<len; i++){
         putchar(*(buff+i));
     }
+    putchar(']');
     putchar('\n');
 }
 
@@ -122,7 +125,11 @@ int reverse_string(char *buff, int str_len){
         *(reversed_string+rev_index) = *(buff+str_len-1-rev_index); // storage += last letter (negative of index)
     }    
 
-    printf("Reversed String: %s\n", reversed_string);
+    // copy reversed string back to buffer (for test case)
+    for (int i = 0; i < str_len; i++) {
+        *(buff + i) = *(reversed_string + i);
+    }
+    // printf("Reversed String: %s\n", reversed_string);
 
     free(reversed_string); // Free storage 
     return 0; 
@@ -147,7 +154,7 @@ int word_print(char *buff, int str_len){
                 printf("%c", *(buff+j));    
             }
 
-            printf(" (%d)\n", len_counter);
+            printf("(%d)\n", len_counter);
             len_counter = 0; // reset counter
             each_word_starting_index = i+1; // next word starts at index i+1
 
@@ -158,6 +165,8 @@ int word_print(char *buff, int str_len){
 
         
     }
+
+    printf("\nNumber of words returned: %d\n", row_counter);
 
     return 0;
 }
@@ -174,11 +183,11 @@ int replace_target_string(char *buff, int len, int str_len, char *target, char *
         replace_len++;
     } 
 
-    // if after replacing the string, it exceeds buffer_size (len), then error
-    if (str_len - target_len + replace_len > len){
-        printf("Error: new replacement string exceeds buffer size\n");
-        return -1;
-    }
+    // // if after replacing the string, it exceeds buffer_size (len), then error
+    // if (str_len - target_len + replace_len > len){
+    //     printf("Error: new replacement string exceeds buffer size\n");
+    //     return -1;
+    // }
 
     // if target/replace length is longer than buffer_size, then error
     if (target_len > len) { 
@@ -245,6 +254,9 @@ int replace_target_string(char *buff, int len, int str_len, char *target, char *
             break;
         }
     }
+    
+    // for the else ++ and copy loop after 
+    int index = 0;
 
     if (target_found == 0){
         printf("Error: Target string was not found\n");
@@ -257,7 +269,6 @@ int replace_target_string(char *buff, int len, int str_len, char *target, char *
         // Add replace
         // Add Rest of string
 
-        int index = 0;
 
         // copy the beginning
         for (int i = 0; i < target_starting_index; i++) {
@@ -271,8 +282,18 @@ int replace_target_string(char *buff, int len, int str_len, char *target, char *
             index++;
         }
 
-        // copy the rest
-        for (int i = target_starting_index + target_len; i < str_len; i++) {
+        // copy the rest (while being careful not to copy last word when itself is being replaced)
+        // str_len - target_len + replace_len > len
+        // for (int i = target_starting_index + target_len; i < str_len; i++) {
+
+        printf("%d\n", index);
+        printf("%d\n", str_len);
+        printf("%d\n", target_len);
+        printf("%d\n", replace_len);
+        printf("%d\n", target_starting_index + target_len);
+        
+
+        for (int i = target_starting_index + target_len; i < str_len - index - target_len + replace_len; i++) {
             *(new_string + index) = *(buff + i);            
             index++;
         }
@@ -283,9 +304,18 @@ int replace_target_string(char *buff, int len, int str_len, char *target, char *
     } 
   
 
+    // copy modified string back to buffer (for test case)
+    for (int i = 0; i < index; i++) {
+        *(buff + i) = *(new_string + i);
+    }
+
+    for (int i = index; i < str_len; i++) {
+        *(buff + i) = '.';
+    }
+
     
-    printf("Modified String: ");
-    printf("%s\n", new_string);
+    // printf("Modified String: ");
+    // printf("%s\n", new_string);
 
     free(new_string);
     
@@ -351,7 +381,8 @@ int main(int argc, char *argv[]){
 
     user_str_len = setup_buff(buff, input_string, BUFFER_SZ);     //see todos
     if (user_str_len < 0){
-        printf("Error setting up buffer, error = %d", user_str_len);
+        printf("Error setting up buffer, error = %d\n", user_str_len);
+        free(buff);
         exit(2);
     }
 
@@ -360,7 +391,8 @@ int main(int argc, char *argv[]){
         case 'c':
             rc = count_words(buff, BUFFER_SZ, user_str_len);  //you need to implement
             if (rc < 0){
-                printf("Error counting words, rc = %d", rc);
+                printf("Error counting words, rc = %d\n", rc);
+                free(buff);
                 exit(2);
             }
             printf("Word Count: %d\n", rc);
@@ -407,11 +439,13 @@ int main(int argc, char *argv[]){
         //       the case statement options
         default:
             usage(argv[0]);
+            free(buff);
             exit(1);
     }
 
     //TODO:  #6 Dont forget to free your buffer before exiting
     print_buff(buff,BUFFER_SZ);
+    free(buff);
     exit(0);
 }
 
