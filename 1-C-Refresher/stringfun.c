@@ -13,9 +13,9 @@ int  setup_buff(char *, char *, int);
 //prototypes for functions to handle required functionality
 int  count_words(char *, int, int);
 //add additional prototypes here
-int reverse_string(buff, user_str_len);
-int word_print(buff, user_str_len);
-
+int reverse_string(char *, int);
+int word_print(char *, int);
+int replace_target_string(char *, int, int, char *, char *);
 
 // " apple apple apple apple " -> apple apple apple apple apple...........................
 // length = 23
@@ -25,19 +25,13 @@ int setup_buff(char *buff, char *user_str, int len){
     char *user_str_ptr = user_str; // pointer for user_str
     int user_str_len = 0;
 
-    while (*user_str_ptr != '\0') { // count len of user_str
-        user_str_len++; 
-        user_str_ptr++; 
-    }    
+    // while (*user_str_ptr != '\0') { // count len of user_str
+        // user_str_len++; 
+        // user_str_ptr++; 
+    // }    
 
-    // if counter > len, return -1
-    if (user_str_len > len) { 
-        return -1; 
-        // -1 = The user supplied string is too large. 
-        //In other words the user supplied string > BUFFER_SZ
-    }
 
-    user_str_ptr = user_str; // Reset to the beginning of the string
+    // user_str_ptr = user_str; // Reset to the beginning of the string
 
     // plan:
     // if character = add
@@ -67,6 +61,14 @@ int setup_buff(char *buff, char *user_str, int len){
         user_str_ptr++; 
     }
 
+    // if counter > len, return -1
+    if (count_buff > len) { 
+        return -1; 
+        // -1 = The user supplied string is too large. 
+        //In other words the user supplied string > BUFFER_SZ
+    }
+
+
 
     // Fill the remaining buffer with .
     while (buff_ptr < buff + len) {
@@ -81,10 +83,11 @@ int setup_buff(char *buff, char *user_str, int len){
 
 
 void print_buff(char *buff, int len){
-    printf("Buffer:  ");
+    printf("Buffer:  [");
     for (int i=0; i<len; i++){
         putchar(*(buff+i));
     }
+    putchar(']');
     putchar('\n');
 }
 
@@ -111,15 +114,25 @@ int count_words(char *buff, int len, int str_len){
 }
 
 int reverse_string(char *buff, int str_len){
-    char reversed_string[str_len]; // storage for reversed string
-
-    // Reverse the string
-    for(int rev_index=0; rev_index<str_len; rev_index++){
-        *(reversed_string+rev_index) = *(buff+str_len-1-rev_index);
+    char *reversed_string = (char *)malloc(str_len * sizeof(char)); // storage for reversed string
+    if (reversed_string == NULL) {
+        printf("Error allocating reversed string\n");
+        return 2; //  The values that should be used are 2 = memory allocation failure
     }
 
-    printf("Reversed String: %s\n", reversed_string);
-    return 0;
+    // Reverse string
+    for(int rev_index=0; rev_index<str_len; rev_index++){ // index of storage start at 0
+        *(reversed_string+rev_index) = *(buff+str_len-1-rev_index); // storage += last letter (negative of index)
+    }    
+
+    // copy reversed string back to buffer (for test case)
+    for (int i = 0; i < str_len; i++) {
+        *(buff + i) = *(reversed_string + i);
+    }
+    // printf("Reversed String: %s\n", reversed_string);
+
+    free(reversed_string); // Free storage 
+    return 0; 
 }
 
 int word_print(char *buff, int str_len){
@@ -135,15 +148,16 @@ int word_print(char *buff, int str_len){
         if (*(buff+i) == ' ' || i == str_len) { // if we are at a space
             // print the word
             row_counter++;
-            printf("%d. ", row_counter); // 1. thing (length of thing is 5)
+            printf("%d. ", row_counter); // 1. thing (5)
             
-            for (int j=each_word_starting_index; j<each_word_starting_index+len_counter; j++) {
+            for (int j=each_word_starting_index; j<each_word_starting_index+len_counter; j++) { // basically substring(index, index+counter)
                 printf("%c", *(buff+j));    
             }
 
-            printf(" (%d)\n", len_counter);
+            printf("(%d)\n", len_counter);
             len_counter = 0; // reset counter
             each_word_starting_index = i+1; // next word starts at index i+1
+
         } else { // if we are not at a space
             len_counter++; 
             // printf("%c", *(buff+i));
@@ -152,9 +166,151 @@ int word_print(char *buff, int str_len){
         
     }
 
+    printf("\nNumber of words returned: %d\n", row_counter);
+
     return 0;
 }
             
+int replace_target_string(char *buff, int len, int str_len, char *target, char *replace){
+    int target_len = 0; // length of target is 0
+    int replace_len = 0; // length of replacement string is 0
+
+    // Get the true length of target string and replacement string
+    while (*(target+target_len) != '\0'){
+        target_len++;
+    }
+    while (*(replace+replace_len) != '\0'){
+        replace_len++;
+    } 
+
+    // // if after replacing the string, it exceeds buffer_size (len), then error
+    // if (str_len - target_len + replace_len > len){
+    //     printf("Error: new replacement string exceeds buffer size\n");
+    //     return -1;
+    // }
+
+    // if target/replace length is longer than buffer_size, then error
+    if (target_len > len) { 
+        printf("Error: searching string should not exceed buffer size\n");
+        return -2;
+    }
+    if (replace_len > len){
+        printf("Error: replacement string should not exceed buffer size\n");
+        return -2;
+    }
+
+    // i think i should test if string is empty, in-case it bypass argv checks
+    // so if target/replace length is 0, then error
+    if (target_len == 0) { 
+        printf("Error: searching string should not be 0\n");
+        return -3;
+    }
+    if (replace_len == 0){
+        printf("Error: replacement string should not be 0\n");
+        return -3;
+    }
+
+    // target should be <= input_string length
+    if (!(target_len <= str_len)){
+        printf("Error: target string's length should be at max input string's length\n");
+        return -4;
+    }
+
+
+
+    // stringfun -x     "Replacing words in strings is not fun!" not super
+    // not -> super 
+    // Modified String: "Replacing words in strings is super fun!"
+
+    char *new_string = (char *)malloc((str_len+replace_len-target_len+1) * sizeof(char)); // storage for reversed string
+    if (new_string == NULL) {
+        printf("Error allocating new string\n");
+        return -5;
+    }
+
+    char *buffer_string = buff; // pointer for buffer
+    int target_starting_index = 0;    //assume target is at index 0
+    int assumed_found = 1; // assume target found
+    int target_found = 0; // target initially has not been found
+
+    // Assume target found
+    // If after looping through target_length, and we don't found a mismatch, then we know it is actually found.
+    // If mismatch found = go next index
+    // If mismatch not found = target is found and we need to replace the string
+
+    for (int i = 0; i <= str_len-replace_len; i++) {
+        assumed_found = 1; // assume target found 
+
+        for (int target_loop = 0; target_loop<target_len; target_loop++){
+            if (*(buffer_string+i+target_loop) != *(target+target_loop)) { // if characters dont match
+                assumed_found = 0;
+                break; 
+            } // go next index
+        }
+
+        if (assumed_found == 1){
+            target_starting_index = i; 
+            target_found = 1;
+            break;
+        }
+    }
+    
+    // for the else ++ and copy loop after 
+    int index = 0;
+
+    if (target_found == 0){
+        printf("Error: Target string was not found\n");
+        free(new_string);
+        return -6;
+    } else {
+
+        // Else if it was found we need to replace the target string
+        // Add Beginning part
+        // Add replace
+        // Add Rest of string
+
+
+        // copy the beginning
+        for (int i = 0; i < target_starting_index; i++) {
+            *(new_string + index) = *(buff + i);
+            index++;
+        }
+
+        // copy the replacement 
+        for (int i = 0; i < replace_len; i++) {
+            *(new_string + index) = *(replace + i);            
+            index++;
+        }
+
+        // copy the rest
+        for (int i = target_starting_index + target_len; i < str_len; i++) {
+            *(new_string + index) = *(buff + i);            
+            index++;
+        }
+
+        // terminate to be able to print
+        *(new_string + index) = '\0';
+
+    } 
+
+
+    // remove buffer
+    for (int i = 0; i < str_len; i++) {
+        *(buff + i) = '.';
+    }
+
+    // copy modified string back to buffer (for test case)
+    for (int i = 0; i < index; i++) {
+        *(buff + i) = *(new_string + i);
+    }
+    // printf("Modified String: ");
+    // printf("%s\n", new_string);
+
+    free(new_string);
+    
+    return 0;
+}  
+
 
 //ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
 
@@ -214,20 +370,18 @@ int main(int argc, char *argv[]){
 
     user_str_len = setup_buff(buff, input_string, BUFFER_SZ);     //see todos
     if (user_str_len < 0){
-        printf("Error setting up buffer, error = %d", user_str_len);
+        printf("Error setting up buffer, error = %d\n", user_str_len);
+        free(buff);
         exit(2);
     }
 
-    // check length AND print 
-    printf("setup_buff() returned: %d\n ", user_str_len);
-    print_buff(buff,BUFFER_SZ);    
-    printf("input string: %s\n", input_string);
 
     switch (opt){
         case 'c':
             rc = count_words(buff, BUFFER_SZ, user_str_len);  //you need to implement
             if (rc < 0){
-                printf("Error counting words, rc = %d", rc);
+                printf("Error counting words, rc = %d\n", rc);
+                free(buff);
                 exit(2);
             }
             printf("Word Count: %d\n", rc);
@@ -251,15 +405,18 @@ int main(int argc, char *argv[]){
         case 'x':
             // If there are not enough arguments, print the usage and exit
             if (argc < 5) {
-                printf("Not Implemented!\n");
+                // printf("Not Implemented!\n");
+                printf("Not enough parameters\n");
                 free(buff);
-                exit(2);
-                // printf("usage: %s -x \"string\" [search arg] [replace arg]\n", argv[0]);
-                // free(buff);
-                // exit(1);
+                exit(1); // 1 = command line problem
             }
-
-            rc = replace_string(buff, user_str_len, argv[3], argv[4]);
+            
+            
+            
+            // stringfun -x     "Replacing words in strings is not fun!" not super
+            // not -> super 
+            // Modified String: "Replacing words in strings is super fun!"
+            rc = replace_target_string(buff, BUFFER_SZ, user_str_len, argv[3], argv[4]);
             if (rc < 0){
                 printf("Error searching and replacing words, rc = %d\n", rc);
                 free(buff);
@@ -271,11 +428,13 @@ int main(int argc, char *argv[]){
         //       the case statement options
         default:
             usage(argv[0]);
+            free(buff);
             exit(1);
     }
 
     //TODO:  #6 Dont forget to free your buffer before exiting
     print_buff(buff,BUFFER_SZ);
+    free(buff);
     exit(0);
 }
 
