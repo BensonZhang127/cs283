@@ -52,6 +52,8 @@ int free_cmd_buff(cmd_buff_t *cmd_buff);
 int clear_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
 
+void removeSpaces(char *cmd_line);
+
 //built in command stuff
 typedef enum {
     BI_CMD_EXIT,
@@ -75,5 +77,6 @@ int exec_cmd(cmd_buff_t *cmd);
 #define CMD_OK_HEADER       "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"
 #define CMD_WARN_NO_CMD     "warning: no commands provided\n"
 #define CMD_ERR_PIPE_LIMIT  "error: piping limited to %d commands\n"
+#define CMD_ERR_EXECUTE     "error: executing command of external command\n"
 
 #endif

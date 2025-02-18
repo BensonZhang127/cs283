@@ -50,12 +50,130 @@
  * 
  *  Standard Library Functions You Might Want To Consider Using (assignment 2+)
  *      fork(), execvp(), exit(), chdir()
- */
+*/
+
+
+void removeSpaces(char *string)
+{
+    // remove spaces from beginning (left)
+    char *begin = string;
+    while (isspace(*begin))
+    {
+        begin++;
+    }
+
+    // remove spaces from end (right)
+    // last position = starting position + length - 1
+    char *end = string + strlen(string) - 1;
+    while (end > begin && isspace(*end))
+    {
+        end--;
+    }
+    *(end + 1) = '\0';
+}
+ 
+
+int alloc_cmd_buff(cmd_buff_t *cmd_buff)
+{
+    cmd_buff->_cmd_buffer = malloc(SH_CMD_MAX); // maximum buffer size for user input
+    if (cmd_buff->_cmd_buffer == NULL) {
+        printf("Error allocating buffer\n");
+        return ERR_MEMORY;
+    }
+    return OK;
+}
+
+int free_cmd_buff(cmd_buff_t *cmd_buff)
+{
+    free(cmd_buff->_cmd_buffer);
+    return OK;
+}
+
+int clear_cmd_buff(cmd_buff_t *cmd_buff)
+{
+    cmd_buff->argc = 0;
+    cmd_buff->_cmd_buffer[0] = '\0';
+    return OK;
+}
+
+int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
+{
+    removeSpaces(cmd_line);
+    strcpy(cmd_buff->_cmd_buffer, cmd_line);
+    return OK;
+}
+
+Built_In_Cmds match_command(const char *input)
+{
+    if (strcmp(input, "exit") == 0) {
+        return BI_CMD_EXIT;
+    } else if (strcmp(input, "dragon") == 0) {
+        return BI_CMD_DRAGON;
+    } else if (strcmp(input, "cd") == 0) {
+        return BI_CMD_CD;
+    } else {
+        return BI_NOT_BI;
+    }
+}
+
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
+{
+    if (strcmp(cmd->argv[0], "exit") == 0) {
+        return BI_EXECUTED;
+    } else if (strcmp(cmd->argv[0], "dragon") == 0) {
+        return BI_EXECUTED;
+    } else if (strcmp(cmd->argv[0], "cd") == 0) {
+        return BI_EXECUTED;
+    } else {
+        return BI_RC;
+    }
+}
+
 int exec_local_cmd_loop()
 {
     char *cmd_buff;
-    int rc = 0;
+    int rc = OK;
     cmd_buff_t cmd;
+
+    while(1){
+        printf("%s", SH_PROMPT);
+        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
+            printf("\n");
+            break;
+        }
+        //remove the trailing \n from cmd_buff
+        cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
+        //IMPLEMENT THE REST OF THE REQUIREMENTS
+    }
+
+    return OK;
+}
+
+int exec_cmd(cmd_buff_t *cmd)
+{
+    return OK;
+}
+
+
+
+ int exec_local_cmd_loop()
+{
+    char *cmd_buff;
+    int rc = OK;
+    cmd_buff_t cmd;
+
+    while(1){
+        printf("%s", SH_PROMPT);
+        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
+            printf("\n");
+            break;
+        }
+        //remove the trailing \n from cmd_buff
+        cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
+     
+        //IMPLEMENT THE REST OF THE REQUIREMENTS
+    }
+
 
     // TODO IMPLEMENT MAIN LOOP
 
