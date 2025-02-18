@@ -129,32 +129,10 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
     }
 }
 
-int exec_local_cmd_loop()
-{
-    char *cmd_buff;
-    int rc = OK;
-    cmd_buff_t cmd;
-
-    while(1){
-        printf("%s", SH_PROMPT);
-        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
-            printf("\n");
-            break;
-        }
-        //remove the trailing \n from cmd_buff
-        cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
-        //IMPLEMENT THE REST OF THE REQUIREMENTS
-    }
-
-    return OK;
-}
-
 int exec_cmd(cmd_buff_t *cmd)
 {
     return OK;
 }
-
-
 
  int exec_local_cmd_loop()
 {
