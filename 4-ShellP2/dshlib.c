@@ -75,17 +75,28 @@ void removeSpaces(char *string)
 
 int alloc_cmd_buff(cmd_buff_t *cmd_buff)
 {
-    cmd_buff->_cmd_buffer = malloc(SH_CMD_MAX); // maximum buffer size for user input
+    // alloc max buffer size for user input
+    cmd_buff->_cmd_buffer = malloc(SH_CMD_MAX * sizeof(char)); 
     if (cmd_buff->_cmd_buffer == NULL) {
         printf("Error allocating buffer\n");
         return ERR_MEMORY;
     }
+
+    memset(cmd_buff->_cmd_buffer, 0, SH_CMD_MAX); 
+
+    cmd_buff->argc = 0;
+
+    memset(cmd_buff->argv, 0, sizeof(cmd_buff->argv)); 
+
     return OK;
 }
 
 int free_cmd_buff(cmd_buff_t *cmd_buff)
 {
-    free(cmd_buff->_cmd_buffer);
+    if (cmd_buff->_cmd_buffer != NULL) { 
+        free(cmd_buff->_cmd_buffer);
+        cmd_buff->_cmd_buffer = NULL; 
+    }
     return OK;
 }
 
