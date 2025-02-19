@@ -247,15 +247,12 @@ int exec_cmd(cmd_buff_t *cmd)
     
     f_result = fork();
     if (f_result < 0) {
-        perror("fork error");
+        perror(CMD_ERR_EXECUTE);
         return ERR_EXEC_CMD; 
-    }
-    
-    if (f_result == 0) {
+    } else if (f_result == 0) {
         // The child will now exec, basically shape shifting itself
         int rc = execvp(cmd->argv[0], cmd->argv);
         if (rc < 0){
-            perror("fork error"); 
             exit(errno);     
         }
     } else {
@@ -268,19 +265,13 @@ int exec_cmd(cmd_buff_t *cmd)
             if (rc==0){
                 return OK;
             } else if (rc==ENOENT) {
-                printf("Error: file not found\n");
+                printf("error: file/directory/command not found\n");
                 return rc;
             } else if (rc==EACCES) {
-                printf("Error: permission denied\n");
-                return rc;
-            } else if (rc==ENOEXEC) {
-                printf("Error: executable format error\n");
-                return rc;
-            } else if (rc==EIO) {
-                printf("Error: input/output error\n");
+                printf("error: permission denied\n");
                 return rc;
             } else {
-                printf("Command execution failed with code %d\n", rc);
+                printf("Failed to execute command with rc %d\n", rc);
                 return rc;
             }
         } else {
