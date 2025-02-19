@@ -46,16 +46,16 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "cd from local" {
-    current=$(pwd)
-
-    mkdir -p dsh-test
-    run "${current}/dsh" <<EOF                
-cd dsh-test
+@test "cd with 1 argument" {
+    current_dir=$(pwd)
+    cd /tmp
+    mkdir -p someDir
+    run "${current_dir}/dsh" <<EOF           
+cd someDir
 pwd
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
-    expected_output="/home/bz344/cs283/4-ShellP2/dsh-testdsh2>dsh2>dsh2>cmdloopreturned0"
+    expected_output="/tmp/someDirdsh2>dsh2>dsh2>cmdloopreturned0"
     echo "Captured stdout:" 
     echo "Output: $output"
     echo "Exit Status: $status"
@@ -63,6 +63,7 @@ EOF
     [ "$stripped_output" = "$expected_output" ]
     [ "$status" -eq 0 ]
 }
+
 
 @test "cd bad argument (should not change directory)" {
     current_dir=$(pwd)
