@@ -241,6 +241,38 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
     return rc;
 }
 
+
+void handle_redirection(cmd_buff_t *cmd) {
+    if (cmd->input_file!=NULL) {
+        int fd_in = open(cmd->input_file, O_RDONLY);
+        if (fd_in < 0) {
+            perror("open input");
+            exit(errno);
+        }
+        if (dup2(fd_in, STDIN_FILENO) < 0) {
+            perror("dup2 input");
+            exit(errno);
+        }
+        close(fd_in);
+    }
+    if (cmd->output_file!=NULL) {
+        int fd_out;
+        if (cmd->out_append)
+            fd_out = open(cmd->output_file, O_WRONLY | O_CREAT | O_APPEND , 0644);
+        else
+            fd_out = open(cmd->output_file, O_WRONLY | O_CREAT | O_TRUNC , 0644);
+        if (fd_out < 0) {
+            perror("open output");
+            exit(errno);
+        }
+        if (dup2(fd_out, STDOUT_FILENO) < 0) {
+            perror("dup2 output");
+            exit(errno);
+        }
+        close(fd_out);
+    }
+}
+
 int exec_cmd(cmd_buff_t *cmd)
 {
     int f_result, c_result;
@@ -251,8 +283,12 @@ int exec_cmd(cmd_buff_t *cmd)
         return ERR_EXEC_CMD; 
     } else if (f_result == 0) {
         // The child will now exec, basically shape shifting itself
+
+        handle_redirection(cmd);
+
         int rc = execvp(cmd->argv[0], cmd->argv);
         if (rc < 0){
+            perror("execvp");
             exit(errno);     
         }
     } else {
@@ -282,6 +318,8 @@ int exec_cmd(cmd_buff_t *cmd)
 
     return OK;
 }
+
+
 
  int exec_local_cmd_loop()
 {
