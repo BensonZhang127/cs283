@@ -1,15 +1,15 @@
 1. Your shell forks multiple child processes when executing piped commands. How does your implementation ensure that all child processes complete before the shell continues accepting user input? What would happen if you forgot to call waitpid() on all child processes?
 
-_answer here_
+_My shell ensures that all child processes complete before accepting new input by using waitpid() on each forked process. After forking all child processes, the parent process (the shell) enters a loop where it calls waitpid() on each child process ID to wait for their termination. If waitpid() were not called on all child processes, they would become zombie processes upon termination. A zombie process retains its entry in the process table until its parent collects its exit status. Over time, too many zombie processes could accumulate, leading to resource exhaustion. Additionally, if the shell immediately returns to the prompt without waiting, it could start processing new user input before previous commands have completed, leading to undefined behavior._
 
 2. The dup2() function is used to redirect input and output file descriptors. Explain why it is necessary to close unused pipe ends after calling dup2(). What could go wrong if you leave pipes open?
 
-_answer here_
+_After calling dup2() to redirect the standard input (STDIN_FILENO) or standard output (STDOUT_FILENO), it is necessary to close the original pipe ends because they are no longer needed by the process. Otherwise, resources may leak, unintended data flow from pipes issues can occur, and data corruption can happen if the pipes open indefinitely._
 
 3. Your shell recognizes built-in commands (cd, exit, dragon). Unlike external commands, built-in commands do not require execvp(). Why is cd implemented as a built-in rather than an external command? What challenges would arise if cd were implemented as an external process?
 
-_answer here_
+_The cd command is implemented as a built-in because changing the directories and files are on the local shell. The working directory is a property of a process, and if cd were executed as an external command using execvp(), it would run in a separate child process, which means the child process could change its working directory, but this change would not persist once the child process terminates. Challenges from making cd an external command would be having to share / have communication of local shell with the child process, then change its own directory based on child's output, which is kind of unnecessarily complicated._
 
 4. Currently, your shell supports a fixed number of piped commands (CMD_MAX). How would you modify your implementation to allow an arbitrary number of piped commands while still handling memory allocation efficiently? What trade-offs would you need to consider?
 
-_answer here_
+_To modify my implementation to allow arbitrary number of piped commands while still handling memory, I can allocate memory dynamically like malloc and realloc. Trade-offs include increase complexity of memory management and debugging, potential decrease in performance due to frequent reallocation, and also more resources usage._
