@@ -1,11 +1,11 @@
 #!/usr/bin/env bats
 
 # File: student_tests.sh
-# 
+#
 # Create your unit tests suit in this file
 
 @test "Example: check ls runs without errors" {
-    run ./dsh <<EOF                
+    run ./dsh <<EOF
 ls
 EOF
 
@@ -36,13 +36,13 @@ EOF
 
     # These echo commands will help with debugging and will only print
     #if the test fails
-    echo "Captured stdout:" 
+    echo "Captured stdout:"
     echo "Output: $output"
     echo "Exit Status: $status"
     echo "Comparison:"
     echo "Stripped: ${stripped_output}"
     echo "Expected: ${expected_output}"
-	echo "${stripped_output} -> ${expected_output}"
+        echo "${stripped_output} -> ${expected_output}"
 
     # Check exact match
     [ "$stripped_output" = "$expected_output" ]
@@ -53,13 +53,13 @@ EOF
     current_dir=$(pwd)
     cd /tmp
     mkdir -p someDir
-    run "${current_dir}/dsh" <<EOF           
+    run "${current_dir}/dsh" <<EOF
 cd someDir
 pwd
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="/tmp/someDirdsh3>dsh3>dsh3>cmdloopreturned0"
-    echo "Captured stdout:" 
+    echo "Captured stdout:"
     echo "Output: $output"
     echo "Exit Status: $status"
     echo "${stripped_output} -> ${expected_output}"
@@ -77,7 +77,7 @@ pwd
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="${current_dir}dsh3>error:couldnotchangedirectorytogibberishdsh3>dsh3>cmdloopreturned0"
-    echo "Captured stdout:" 
+    echo "Captured stdout:"
     echo "Output: $output"
     echo "Exit Status: $status"
     echo "Output stripped: ${stripped_output}"
@@ -96,7 +96,7 @@ EOF
 
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="${current_dir}dsh3>error:toomanyargumentsforcddsh3>dsh3>cmdloopreturned0"
-    echo "Captured stdout:" 
+    echo "Captured stdout:"
     echo "Output: $output"
     echo "Exit Status: $status"
     echo "Output stripped: ${stripped_output}"
@@ -115,8 +115,8 @@ EOF
 }
 
 @test "echo no quote" {
-    run "./dsh" <<EOF                
-   echo "hello world" 
+    run "./dsh" <<EOF
+   echo "hello world"
 EOF
 
     # Strip all whitespace (spaces, tabs, newlines) from the output
@@ -127,7 +127,7 @@ EOF
 
     # These echo commands will help with debugging and will only print
     #if the test fails
-    echo "Captured stdout:" 
+    echo "Captured stdout:"
     echo "Output: $output"
     echo "Exit Status: $status"
     echo "${stripped_output} -> ${expected_output}"
@@ -189,7 +189,7 @@ EOF
 
 @test "Other errno" {
     run ./dsh <<EOF
-false 
+false
 exit
 EOF
     # Check that the error message gets returned
@@ -220,7 +220,7 @@ EOF
 
 
 @test "Exceed Pipe Limit" {
-    run "./dsh" <<EOF                
+    run "./dsh" <<EOF
 echo | echo | echo | echo | echo | echo | echo | echo | echo 9
 EOF
 
@@ -243,8 +243,8 @@ EOF
 
 
 @test "Empty After Pipe" {
-    run "./dsh" <<EOF                
-echo 1 | 
+    run "./dsh" <<EOF
+echo 1 |
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="errorparsingcommandlinedsh3>dsh3>cmdloopreturned-6"
@@ -255,19 +255,19 @@ EOF
 }
 
 @test "Empty in between 2 pipe" {
-    run "./dsh" <<EOF                
+    run "./dsh" <<EOF
 echo 1 | | echo 3
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="error:invalidcommandinpipelinedsh3>dsh3>cmdloopreturned-6"
-	echo "S : ${stripped_output}"
+        echo "S : ${stripped_output}"
     echo "Ex: ${expected_output}"
     [ "$stripped_output" = "$expected_output" ]
     [ "$status" -eq 0 ]
 }
 
 @test "Command start with pipe is not allowed" {
-    run "./dsh" <<EOF                
+    run "./dsh" <<EOF
 | echo 2
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
@@ -280,7 +280,7 @@ EOF
 
 @test "Starting with pipe is not allowed" {
     run "./dsh" <<EOF
-| 
+|
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="errorparsingcommandlinedsh3>dsh3>cmdloopreturned-6"
@@ -292,7 +292,7 @@ EOF
 
 
 @test "Multiple piping commands work" {
-    run "./dsh" <<EOF                
+    run "./dsh" <<EOF
 echo hello | grep hello | wc -l
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
@@ -318,7 +318,7 @@ EOF
 
 
 @test "Ending with pipe is not allowed" {
-    run "./dsh" <<EOF                
+    run "./dsh" <<EOF
 echo hello |
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
@@ -333,7 +333,7 @@ EOF
 
 
 @test "Piping with arguments works" {
-    run "./dsh" <<EOF                
+    run "./dsh" <<EOF
 echo hello | tr a-z A-Z
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
@@ -347,17 +347,17 @@ EOF
 
 @test "output redirection using >" {
     run ./dsh <<EOF
-echo "gibberish" > some_temp.txt
-cat some_temp.txt
+echo "gibberish" > temp_redir_file.txt
+cat temp_redir_file.txt
 EOF
-    
+
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="gibberishdsh3>dsh3>dsh3>cmdloopreturned0"
     echo "S : ${stripped_output}"
     echo "Ex: ${expected_output}"
     [ "$stripped_output" = "$expected_output" ]
     [ "$status" -eq 0 ]
-    rm -f some_temp.txt
+    rm -f temp_redir_file.txt
 }
 
 
@@ -428,7 +428,7 @@ EOF
 
 @test "output redirection using > (missing output)" {
     run ./dsh <<EOF
-echo "gibberish" > 
+echo "gibberish" >
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="errorparsingcommandlinedsh3>dsh3>cmdloopreturned-4"
@@ -443,7 +443,7 @@ EOF
 @test "output redirection using >> (missing output)" {
     run ./dsh <<EOF
 echo "gibberish1" > some_temp.txt
-echo "gibberish2" >> 
+echo "gibberish2" >>
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="errorparsingcommandlinedsh3>dsh3>dsh3>cmdloopreturned-4"
@@ -457,7 +457,7 @@ EOF
 @test "input redirection using < (without input)" {
     echo "gibberish" > some_temp.txt
     run ./dsh <<EOF
-cat < 
+cat <
 EOF
     stripped_output=$(echo "$output" | tr -d '[:space:]')
     expected_output="errorparsingcommandlinedsh3>dsh3>cmdloopreturned-4"
@@ -467,6 +467,7 @@ EOF
     [ "$status" -eq 0 ]
     rm -f some_temp.txt
 }
+
 
 @test "output redirection using > (missing input)" {
     run ./dsh <<EOF
@@ -509,9 +510,3 @@ EOF
     [ "$status" -eq 0 ]
     rm -f some_temp.txt
 }
-
-# > out.txt
-# -bash: out.txt: cannot overwrite existing file
-# >> out.txt
-# > out2.txt
-# < out.txt
