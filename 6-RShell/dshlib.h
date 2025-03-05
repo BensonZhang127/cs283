@@ -25,7 +25,7 @@ typedef struct cmd_buff
     char *_cmd_buffer;
     char *input_file;  // extra credit, stores input redirection file (for `<`)
     char *output_file; // extra credit, stores output redirection file (for `>`)
-    bool append_mode; // extra credit, sets append mode fomr output_file
+    bool outputAppendMode; // extra credit, sets append mode fomr output_file
 } cmd_buff_t;
 
 typedef struct command_list{
@@ -63,6 +63,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
 int close_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_list(char *cmd_line, command_list_t *clist);
 int free_cmd_list(command_list_t *cmd_lst);
+void handle_redirection(cmd_buff_t *cmd);
 
 //built in command stuff
 typedef enum {

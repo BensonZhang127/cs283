@@ -15,8 +15,6 @@ extern void print_dragon(); // dragon.c
 
 int last_rc = 0;
 
-
-
 /**** 
  **** FOR REMOTE SHELL USE YOUR SOLUTION FROM SHELL PART 3 HERE
  **** THE MAIN FUNCTION CALLS THIS ONE AS ITS ENTRY POINT TO
@@ -87,6 +85,7 @@ void removeSpaces(char *string)
     *(end + 1) = '\0';
 }
 
+
 int alloc_cmd_buff(cmd_buff_t *cmd_buff)
 {
     cmd_buff->_cmd_buffer = malloc(SH_CMD_MAX * sizeof(char));
@@ -103,7 +102,7 @@ int alloc_cmd_buff(cmd_buff_t *cmd_buff)
 
     cmd_buff->input_file = NULL;
     cmd_buff->output_file = NULL;
-    cmd_buff->append_mode = 0;
+    cmd_buff->outputAppendMode = 0;
 
     return OK;
 }
@@ -129,7 +128,7 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff)
 
     cmd_buff->input_file = NULL;
     cmd_buff->output_file = NULL;
-    cmd_buff->append_mode = 0;
+    cmd_buff->outputAppendMode = 0;
     return OK;
 }
 
@@ -144,7 +143,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     cmd_buff->_cmd_buffer[SH_CMD_MAX - 1] = '\0';
 
 
-    char *token = cmd_buff->_cmd_buffer; 
+    char *token = cmd_buff->_cmd_buffer;
     int argc = 0;
     bool in_quotes_mode = false;
     char *start = NULL;
@@ -205,30 +204,45 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     cmd_buff->argc = argc;
     cmd_buff->argv[argc] = NULL;
 
-    int outputArgumentCount = 0;
-
+        int outputArgumentCount = 0;
     for (int currentArgumentIndex = 0; currentArgumentIndex < argc; currentArgumentIndex++) {
         if (strcmp(cmd_buff->argv[currentArgumentIndex], "<") == 0) {
+            if (currentArgumentIndex == 0) { // Check if '<' is at the beginning
+                return -4; // Return error code
+            }
             if (currentArgumentIndex + 1 < argc) {
                 cmd_buff->input_file = cmd_buff->argv[currentArgumentIndex + 1];
                 currentArgumentIndex++;
+            } else {
+                return -4;
             }
         } else if (strcmp(cmd_buff->argv[currentArgumentIndex], ">") == 0) {
+            if (currentArgumentIndex == 0) { // Check if '>' is at the beginning
+                return -4; // Return error code
+            }
             if (currentArgumentIndex + 1 < argc) {
                 cmd_buff->output_file = cmd_buff->argv[currentArgumentIndex + 1];
-                cmd_buff->append_mode = 0;
+                cmd_buff->outputAppendMode = 0;
                 currentArgumentIndex++;
+            } else {
+                return -4;
             }
         } else if (strcmp(cmd_buff->argv[currentArgumentIndex], ">>") == 0) {
+            if (currentArgumentIndex == 0) { // Check if '>>' is at the beginning
+                return -4; // Return error code
+            }
             if (currentArgumentIndex + 1 < argc) {
                 cmd_buff->output_file = cmd_buff->argv[currentArgumentIndex + 1];
-                cmd_buff->append_mode = 1;
+                cmd_buff->outputAppendMode = 1;
                 currentArgumentIndex++;
+            } else {
+                return -4;
             }
         } else {
             cmd_buff->argv[outputArgumentCount++] = cmd_buff->argv[currentArgumentIndex];
         }
     }
+
 
     cmd_buff->argv[outputArgumentCount] = NULL;
     cmd_buff->argc = outputArgumentCount;
@@ -236,27 +250,29 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     return OK;
 }
 
+
+
 int build_cmd_list(char *cmd_line, command_list_t *clist) {
     removeSpaces(cmd_line);
-    clist->num = 0; 
+    clist->num = 0;
 
     char *pointer_check_pipe = cmd_line;
     while (*pointer_check_pipe == ' ' || *pointer_check_pipe == '\t') {
         pointer_check_pipe++;
     }
     if (*pointer_check_pipe == '|' || (strlen(pointer_check_pipe) > 0 && pointer_check_pipe[strlen(pointer_check_pipe) - 1] == '|')) {
-        return ERR_EXEC_CMD;  
+        return ERR_EXEC_CMD;
     }
 
     char *command_token = strtok(cmd_line, PIPE_STRING);
     int command_index = 0;
-    int last_was_empty = 0; 
+    int last_was_empty = 0;
 
     while (command_token != NULL) {
         removeSpaces(command_token);
 
         if (command_index >= CMD_MAX) {
-            free_cmd_list(clist);  
+            free_cmd_list(clist);
             return ERR_TOO_MANY_COMMANDS;
         }
 
@@ -295,7 +311,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
     }
 
     if (last_was_empty) {
-        fprintf(stderr, "error: command cannot end with a pipe\n");
         free_cmd_list(clist);
         return ERR_TOO_MANY_COMMANDS;
     }
@@ -308,6 +323,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
     return OK;
 }
 
+
 int free_cmd_list(command_list_t *cmd_list) {
     for (int i = 0; i < cmd_list->num; i++) {
         free_cmd_buff(&cmd_list->commands[i]);
@@ -315,6 +331,7 @@ int free_cmd_list(command_list_t *cmd_list) {
     cmd_list->num = 0;
     return OK;
 }
+
 
 Built_In_Cmds match_command(const char *input)
 {
@@ -331,92 +348,68 @@ Built_In_Cmds match_command(const char *input)
     }
 }
 
-Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
-{
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
     Built_In_Cmds cmd_type = match_command(cmd->argv[0]);
-    int rc = BI_NOT_BI;
+    int rc = BI_NOT_BI; 
 
-    if ((cmd_type == BI_CMD_DRAGON || cmd_type == BI_RC) && (cmd->input_file != NULL || cmd->output_file != NULL)){
-        pid_t pid = fork();
-        if (pid == 0){
-            // child
-            handle_redirection(cmd);
-
-            if (cmd_type == BI_CMD_DRAGON){
-                print_dragon();
-            } else if (cmd_type == BI_RC) {
-                printf("%d\n", last_rc);
+    if (cmd_type == BI_CMD_EXIT) {
+        rc = BI_CMD_EXIT; 
+    } else if (cmd_type == BI_CMD_DRAGON) {
+        handle_redirection(cmd); 
+        print_dragon(); 
+        rc = BI_EXECUTED; 
+    } else if (cmd_type == BI_CMD_CD) {
+        if (cmd->argc == 1) {
+            rc = BI_EXECUTED;
+        } else if (cmd->argc == 2) {
+            if (chdir(cmd->argv[1]) != 0) {
+                printf("error: could not change directory to %s\n", cmd->argv[1]);
             }
-            exit(0);
-        } else if (pid > 0){
-            // parent wait child
-            int status;
-            waitpid(pid, &status, 0);
             rc = BI_EXECUTED;
         } else {
-            // fork failed
-            perror("fork");
-            rc = BI_NOT_BI;
-        }
-    }
-    else {
-        // no redir, dragon/rc
-        if (cmd_type == BI_CMD_EXIT) {
-            rc = BI_CMD_EXIT;
-        } else if (cmd_type == BI_CMD_DRAGON) {
-            print_dragon();
+            printf("error: too many arguments for cd\n");
             rc = BI_EXECUTED;
-        } else if (cmd_type == BI_CMD_CD) {
-            if (cmd->argc == 1) {
-                // nothing happens
-                rc = BI_EXECUTED;
-            } else if (cmd->argc == 2) {
-                if (chdir(cmd->argv[1]) != 0) {
-                    printf("error: could not change directory to %s\n", cmd->argv[1]);
-                }
-                rc = BI_EXECUTED;
-            } else {
-                printf("error: too many arguments for cd\n");
-                rc = BI_EXECUTED;
-            }
-        } else if (cmd_type == BI_RC) {
-            printf("%d\n", last_rc);
-            rc = BI_EXECUTED;
-        } else {
-            rc = BI_NOT_BI;
         }
+    } else if (cmd_type == BI_RC) {
+        handle_redirection(cmd); 
+        printf("%d\n", last_rc); 
+        rc = BI_EXECUTED; 
+    } else {
+        rc = BI_NOT_BI;
     }
 
-
-    return rc;
+    return rc; // Return the result
 }
+
+
+
 
 void handle_redirection(cmd_buff_t *cmd) {
     if (cmd->input_file!=NULL) {
         int fd_in = open(cmd->input_file, O_RDONLY);
         if (fd_in < 0) {
             perror("open input");
-            exit(errno);
+            exit(ERR_CMD_ARGS_BAD);
         }
         if (dup2(fd_in, STDIN_FILENO) < 0) {
             perror("dup2 input");
-            exit(errno);
+            exit(ERR_CMD_ARGS_BAD);
         }
         close(fd_in);
     }
     if (cmd->output_file!=NULL) {
         int fd_out;
-        if (cmd->append_mode)
+        if (cmd->outputAppendMode)
             fd_out = open(cmd->output_file, O_WRONLY | O_CREAT | O_APPEND , 0644);
         else
             fd_out = open(cmd->output_file, O_WRONLY | O_CREAT | O_TRUNC , 0644);
         if (fd_out < 0) {
             perror("open output");
-            exit(errno);
+            exit(ERR_CMD_ARGS_BAD);
         }
         if (dup2(fd_out, STDOUT_FILENO) < 0) {
             perror("dup2 output");
-            exit(errno);
+            exit(ERR_CMD_ARGS_BAD);
         }
         close(fd_out);
     }
@@ -467,10 +460,11 @@ int exec_cmd(cmd_buff_t *cmd)
     return OK;
 }
 
+
 int exec_pipeline(command_list_t *command_list) {
     int num_commands = command_list->num;
     if (num_commands <= 0) {
-        return WARN_NO_CMDS;  
+        return WARN_NO_CMDS;
     }
 
     pid_t child_pids[CMD_MAX];
@@ -570,7 +564,7 @@ int exec_pipeline(command_list_t *command_list) {
 int exec_local_cmd_loop() {
     char cmd_buff[SH_CMD_MAX];
     command_list_t cmd_list;
-    cmd_list.num = 0;  
+    cmd_list.num = 0;
     int rc = OK;
 
     while (1) {
@@ -596,11 +590,11 @@ int exec_local_cmd_loop() {
 
         char _cmd_buff[SH_CMD_MAX];
         strncpy(_cmd_buff, cmd_buff, SH_CMD_MAX);
-        _cmd_buff[SH_CMD_MAX - 1] = '\0';  
+        _cmd_buff[SH_CMD_MAX - 1] = '\0';
 
         rc = build_cmd_list(_cmd_buff, &cmd_list);
 
-        if (rc != OK) {
+                if (rc != OK) {
             if (rc == WARN_NO_CMDS) {
                 fprintf(stderr, CMD_WARN_NO_CMD);
             } else if (rc == ERR_TOO_MANY_COMMANDS) {
@@ -608,9 +602,11 @@ int exec_local_cmd_loop() {
             } else {
                 fprintf(stderr, "error parsing command line\n");
             }
-            free_cmd_list(&cmd_list);  
+            free_cmd_list(&cmd_list);
             continue;
         }
+
+
 
         if (cmd_list.num == 1) {
             Built_In_Cmds bi = exec_built_in_cmd(&cmd_list.commands[0]);
@@ -627,7 +623,7 @@ int exec_local_cmd_loop() {
         }
 
         last_rc = rc;
-        free_cmd_list(&cmd_list);  
+        free_cmd_list(&cmd_list);
     }
     return rc;
 }
