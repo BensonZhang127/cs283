@@ -198,30 +198,50 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
     cmd_buff->argv[argc] = NULL;
 
     int outputArgumentCount = 0;
-
     for (int currentArgumentIndex = 0; currentArgumentIndex < argc; currentArgumentIndex++) {
         if (strcmp(cmd_buff->argv[currentArgumentIndex], "<") == 0) {
+            if (currentArgumentIndex == 0) { // Check if '<' is at the beginning
+                fprintf(stderr, "Error: Missing command before input redirection.\n");
+                return -4; // Return error code
+            }
             if (currentArgumentIndex + 1 < argc) {
                 cmd_buff->input_file = cmd_buff->argv[currentArgumentIndex + 1];
                 currentArgumentIndex++;
+            } else {
+                fprintf(stderr, "Error: Missing filename after input redirection.\n");
+                return -4;
             }
         } else if (strcmp(cmd_buff->argv[currentArgumentIndex], ">") == 0) {
+            if (currentArgumentIndex == 0) { // Check if '>' is at the beginning
+                fprintf(stderr, "Error: Missing command before output redirection.\n");
+                return -4; // Return error code
+            }
             if (currentArgumentIndex + 1 < argc) {
                 cmd_buff->output_file = cmd_buff->argv[currentArgumentIndex + 1];
                 cmd_buff->outputAppendMode = 0;
                 currentArgumentIndex++;
+            } else {
+                fprintf(stderr, "Error: Missing filename after output redirection.\n");
+                return -4;
             }
         } else if (strcmp(cmd_buff->argv[currentArgumentIndex], ">>") == 0) {
+            if (currentArgumentIndex == 0) { // Check if '>>' is at the beginning
+                fprintf(stderr, "Error: Missing command before append output redirection.\n");
+                return -4; // Return error code
+            }
             if (currentArgumentIndex + 1 < argc) {
                 cmd_buff->output_file = cmd_buff->argv[currentArgumentIndex + 1];
                 cmd_buff->outputAppendMode = 1;
                 currentArgumentIndex++;
+            } else {
+                fprintf(stderr, "Error: Missing filename after append output redirection.\n");
+                return -4;
             }
         } else {
             cmd_buff->argv[outputArgumentCount++] = cmd_buff->argv[currentArgumentIndex];
         }
     }
-
+    
     cmd_buff->argv[outputArgumentCount] = NULL;
     cmd_buff->argc = outputArgumentCount;
 
@@ -290,7 +310,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
     }
 
     if (last_was_empty) {
-        fprintf(stderr, "error: command cannot end with a pipe\n");
         free_cmd_list(clist);
         return ERR_TOO_MANY_COMMANDS;
     }
@@ -328,65 +347,48 @@ Built_In_Cmds match_command(const char *input)
     }
 }
 
-Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd)
-{
-    Built_In_Cmds cmd_type = match_command(cmd->argv[0]);
-    int rc = BI_NOT_BI;
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
+    Built_In_Cmds cmd_type = match_command(cmd->argv[0]); // Determine the built-in command
+    int rc = BI_NOT_BI; // Initialize return code to "not a built-in command"
 
-    if ((cmd_type == BI_CMD_DRAGON || cmd_type == BI_RC) && (cmd->input_file != NULL || cmd->output_file != NULL)){
-        pid_t pid = fork();
-        if (pid == 0){
-            // child
-            handle_redirection(cmd);
-
-            if (cmd_type == BI_CMD_DRAGON){
-                print_dragon();
-            } else if (cmd_type == BI_RC) {
-                printf("%d\n", last_rc);
+    if (cmd_type == BI_CMD_EXIT) {
+        // Handle the 'exit' command directly
+        rc = BI_CMD_EXIT; // Indicate exit command was found
+    } else if (cmd_type == BI_CMD_DRAGON) {
+        // Handle the 'dragon' command
+        handle_redirection(cmd); // Apply any redirection specified in the command
+        print_dragon(); // Execute the dragon drawing function
+        rc = BI_EXECUTED; // Indicate successful execution
+    } else if (cmd_type == BI_CMD_CD) {
+        // Handle the 'cd' command
+        if (cmd->argc == 1) {
+            // If no directory is specified, do nothing (or change to HOME, if desired)
+            rc = BI_EXECUTED;
+        } else if (cmd->argc == 2) {
+            // Change directory to the specified argument
+            if (chdir(cmd->argv[1]) != 0) {
+                // If chdir fails, print an error message
+                printf("error: could not change directory to %s\n", cmd->argv[1]);
             }
-            exit(0);
-        } else if (pid > 0){
-            // parent wait child
-            int status;
-            waitpid(pid, &status, 0);
             rc = BI_EXECUTED;
         } else {
-            // fork failed
-            perror("fork");
-            rc = BI_NOT_BI;
-        }
-    }
-    else {
-        // no redir, dragon/rc
-        if (cmd_type == BI_CMD_EXIT) {
-            rc = BI_CMD_EXIT;
-        } else if (cmd_type == BI_CMD_DRAGON) {
-            print_dragon();
+            // If too many arguments are provided, print an error message
+            printf("error: too many arguments for cd\n");
             rc = BI_EXECUTED;
-        } else if (cmd_type == BI_CMD_CD) {
-            if (cmd->argc == 1) {
-                // nothing happens
-                rc = BI_EXECUTED;
-            } else if (cmd->argc == 2) {
-                if (chdir(cmd->argv[1]) != 0) {
-                    printf("error: could not change directory to %s\n", cmd->argv[1]);
-                }
-                rc = BI_EXECUTED;
-            } else {
-                printf("error: too many arguments for cd\n");
-                rc = BI_EXECUTED;
-            }
-        } else if (cmd_type == BI_RC) {
-            printf("%d\n", last_rc);
-            rc = BI_EXECUTED;
-        } else {
-            rc = BI_NOT_BI;
         }
+    } else if (cmd_type == BI_RC) {
+        // Handle the 'rc' command (print the last return code)
+        handle_redirection(cmd); // Apply any redirection specified in the command
+        printf("%d\n", last_rc); // Print the last return code
+        rc = BI_EXECUTED; // Indicate successful execution
+    } else {
+        // If the command is not a recognized built-in, leave rc as BI_NOT_BI
+        rc = BI_NOT_BI;
     }
 
-
-    return rc;
+    return rc; // Return the result
 }
+
 
 void handle_redirection(cmd_buff_t *cmd) {
     if (cmd->input_file!=NULL) {
@@ -650,6 +652,16 @@ int exec_local_cmd_loop() {
                 fprintf(stderr, CMD_WARN_NO_CMD);
             } else if (rc == ERR_TOO_MANY_COMMANDS) {
                 fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
+            } else if (rc == ERR_CMD_OR_ARGS_TOO_BIG) {
+                fprintf(stderr, "ERR_CMD_OR_ARGS_TOO_BIG", CMD_MAX);
+            } else if (rc == ERR_CMD_ARGS_BAD) {
+                fprintf(stderr, "ERR_CMD_ARGS_BAD", CMD_MAX);
+            } else if (rc == ERR_MEMORY) {
+                fprintf(stderr, "ERR_MEMORY", CMD_MAX);
+            } else if (rc == ERR_EXEC_CMD) {
+                fprintf(stderr, "ERR_EXEC_CMD", CMD_MAX);
+            } else if (rc == OK_EXIT) {
+                fprintf(stderr, "OK_EXIT", CMD_MAX);
             } else {
                 fprintf(stderr, "error parsing command line\n");
             }

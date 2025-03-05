@@ -347,8 +347,8 @@ EOF
 
 @test "output redirection using >" {
     run ./dsh <<EOF
-echo "gibberish" > temp_redir_file.txt
-cat temp_redir_file.txt
+echo "gibberish" > some_temp.txt
+cat some_temp.txt
 EOF
     
     stripped_output=$(echo "$output" | tr -d '[:space:]')
@@ -357,7 +357,7 @@ EOF
     echo "Ex: ${expected_output}"
     [ "$stripped_output" = "$expected_output" ]
     [ "$status" -eq 0 ]
-    rm -f temp_redir_file.txt
+    rm -f some_temp.txt
 }
 
 
@@ -424,3 +424,94 @@ EOF
     [ "$status" -eq 0 ]
     rm -f some_temp_in.txt some_temp_out.txt
 }
+
+
+@test "output redirection using > (missing output)" {
+    run ./dsh <<EOF
+echo "gibberish" > 
+EOF
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="errorparsingcommandlinedsh3>dsh3>cmdloopreturned-4"
+    echo "S : ${stripped_output}"
+    echo "Ex: ${expected_output}"
+    [ "$stripped_output" = "$expected_output" ]
+    [ "$status" -eq 0 ]
+    rm -f some_temp.txt
+}
+
+
+@test "output redirection using >> (missing output)" {
+    run ./dsh <<EOF
+echo "gibberish1" > some_temp.txt
+echo "gibberish2" >> 
+EOF
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="errorparsingcommandlinedsh3>dsh3>dsh3>cmdloopreturned-4"
+    echo "S : ${stripped_output}"
+    echo "Ex: ${expected_output}"
+    [ "$stripped_output" = "$expected_output" ]
+    [ "$status" -eq 0 ]
+    rm -f some_temp.txt
+}
+
+@test "input redirection using < (without input)" {
+    echo "gibberish" > some_temp.txt
+    run ./dsh <<EOF
+cat < 
+EOF
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="errorparsingcommandlinedsh3>dsh3>cmdloopreturned-4"
+    echo "S : ${stripped_output}"
+    echo "Ex: ${expected_output}"
+    [ "$stripped_output" = "$expected_output" ]
+    [ "$status" -eq 0 ]
+    rm -f some_temp.txt
+}
+
+@test "output redirection using > (missing input)" {
+    run ./dsh <<EOF
+> some_temp.txt
+EOF
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="errorparsingcommandlinedsh3>dsh3>cmdloopreturned-4"
+    echo "S : ${stripped_output}"
+    echo "Ex: ${expected_output}"
+    [ "$stripped_output" = "$expected_output" ]
+    [ "$status" -eq 0 ]
+    rm -f some_temp.txt
+}
+
+
+@test "output redirection using >> (missing input)" {
+    run ./dsh <<EOF
+echo "gibberish1" > some_temp.txt
+>> some_temp.txt
+EOF
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="errorparsingcommandlinedsh3>dsh3>dsh3>cmdloopreturned-4"
+    echo "S : ${stripped_output}"
+    echo "Ex: ${expected_output}"
+    [ "$stripped_output" = "$expected_output" ]
+    [ "$status" -eq 0 ]
+    rm -f some_temp.txt
+}
+
+@test "input redirection using < (without output)" {
+    echo "gibberish" > some_temp.txt
+    run ./dsh <<EOF
+< some_temp.txt
+EOF
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="errorparsingcommandlinedsh3>dsh3>cmdloopreturned-4"
+    echo "S : ${stripped_output}"
+    echo "Ex: ${expected_output}"
+    [ "$stripped_output" = "$expected_output" ]
+    [ "$status" -eq 0 ]
+    rm -f some_temp.txt
+}
+
+# > out.txt
+# -bash: out.txt: cannot overwrite existing file
+# >> out.txt
+# > out2.txt
+# < out.txt
