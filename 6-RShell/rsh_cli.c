@@ -90,9 +90,69 @@
  *   function after cleaning things up.  See the documentation for client_cleanup()
  *      
  */
-int exec_remote_cmd_loop(char *address, int port)
-{
-    return WARN_RDSH_NOT_IMPL;
+int exec_remote_cmd_loop(char *address, int port) {
+    int cli_socket = start_client(address, port);
+    if (cli_socket < 0) {
+        printf("Failed to connect to %s:%d\n", address, port);
+        return ERR_RDSH_CLIENT;
+    }
+    printf("Connected to %s:%d\n", address, port);
+
+    char *cmd_buff = malloc(RDSH_COMM_BUFF_SZ);
+    char *rsp_buff = malloc(RDSH_COMM_BUFF_SZ);
+    if (!cmd_buff || !rsp_buff) {
+        perror("malloc");
+        return client_cleanup(cli_socket, cmd_buff, rsp_buff, ERR_MEMORY);
+    }
+
+    while (1) {
+        printf("rsh> ");
+        fflush(stdout);
+        if (fgets(cmd_buff, RDSH_COMM_BUFF_SZ, stdin) == NULL) {
+            printf("Input ended\n");
+            break;
+        }
+        cmd_buff[strcspn(cmd_buff, "\n")] = '\0'; // Remove newline
+        int len = strlen(cmd_buff);
+        if (len + 1 >= RDSH_COMM_BUFF_SZ) {
+            printf("Command too long\n");
+            continue;
+        }
+        cmd_buff[len] = RDSH_EOF_CHAR;
+        cmd_buff[len + 1] = '\0';
+
+        if (send(cli_socket, cmd_buff, len + 1, 0) < 0) {
+            perror("send");
+            return client_cleanup(cli_socket, cmd_buff, rsp_buff, ERR_RDSH_COMMUNICATION);
+        }
+
+        int total_received = 0, recv_bytes, is_eof = 0;
+        memset(rsp_buff, 0, RDSH_COMM_BUFF_SZ);
+        while (!is_eof && total_received < RDSH_COMM_BUFF_SZ - 1) {
+            recv_bytes = recv(cli_socket, rsp_buff + total_received,
+                            RDSH_COMM_BUFF_SZ - total_received - 1, 0);
+            if (recv_bytes <= 0) {
+                printf("Server closed connection\n");
+                return client_cleanup(cli_socket, cmd_buff, rsp_buff,
+                                    recv_bytes < 0 ? ERR_RDSH_COMMUNICATION : OK);
+            }
+            total_received += recv_bytes;
+            rsp_buff[total_received] = '\0';
+            if (rsp_buff[total_received - 1] == RDSH_EOF_CHAR) {
+                is_eof = 1;
+                rsp_buff[total_received - 1] = '\0';
+            }
+        }
+        if (strlen(rsp_buff) > 0) {
+            printf("%s\n", rsp_buff); // Keep your newline for readability
+        }
+
+        if (strcmp(cmd_buff, "exit\x04") == 0 || strcmp(cmd_buff, "stop-server\x04") == 0) {
+            break;
+        }
+    }
+
+    return client_cleanup(cli_socket, cmd_buff, rsp_buff, OK);
 }
 
 /*
@@ -118,8 +178,25 @@ int exec_remote_cmd_loop(char *address, int port)
  *          ERR_RDSH_CLIENT:    If socket() or connect() fail
  * 
  */
-int start_client(char *server_ip, int port){
-    return WARN_RDSH_NOT_IMPL;
+int start_client(char *server_ip, int port) {
+    int cli_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (cli_socket < 0) {
+        perror("socket");
+        return ERR_RDSH_CLIENT;
+    }
+
+    struct sockaddr_in server_addr = {0};
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    server_addr.sin_addr.s_addr = inet_addr(server_ip);
+
+    if (connect(cli_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        perror("connect");
+        close(cli_socket);
+        return ERR_RDSH_CLIENT;
+    }
+
+    return cli_socket;
 }
 
 /*
@@ -146,16 +223,13 @@ int start_client(char *server_ip, int port){
  *                can just write return client_cleanup(...)
  *      
  */
-int client_cleanup(int cli_socket, char *cmd_buff, char *rsp_buff, int rc){
-    //If a valid socket number close it.
-    if(cli_socket > 0){
+int client_cleanup(int cli_socket, char *cmd_buff, char *rsp_buff, int rc) {
+    if (cli_socket > 0) {
         close(cli_socket);
     }
-
-    //Free up the buffers 
     free(cmd_buff);
     free(rsp_buff);
-
-    //Echo the return value that was passed as a parameter
     return rc;
 }
+
+

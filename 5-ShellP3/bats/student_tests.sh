@@ -65,6 +65,8 @@ EOF
     echo "${stripped_output} -> ${expected_output}"
     [ "$stripped_output" = "$expected_output" ]
     [ "$status" -eq 0 ]
+
+    rm -rf someDir
 }
 
 

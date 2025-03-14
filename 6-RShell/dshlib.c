@@ -15,7 +15,7 @@ extern void print_dragon(); // dragon.c
 
 int last_rc = 0;
 
-/**** 
+/****
  **** FOR REMOTE SHELL USE YOUR SOLUTION FROM SHELL PART 3 HERE
  **** THE MAIN FUNCTION CALLS THIS ONE AS ITS ENTRY POINT TO
  **** EXECUTE THE SHELL LOCALLY
@@ -23,10 +23,10 @@ int last_rc = 0;
  */
 
 /*
- * Implement your exec_local_cmd_loop function by building a loop that prompts the 
+ * Implement your exec_local_cmd_loop function by building a loop that prompts the
  * user for input.  Use the SH_PROMPT constant from dshlib.h and then
  * use fgets to accept user input.
- * 
+ *
  *      while(1){
  *        printf("%s", SH_PROMPT);
  *        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
@@ -35,11 +35,11 @@ int last_rc = 0;
  *        }
  *        //remove the trailing \n from cmd_buff
  *        cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
- * 
+ *
  *        //IMPLEMENT THE REST OF THE REQUIREMENTS
  *      }
- * 
- *   Also, use the constants in the dshlib.h in this code.  
+ *
+ *   Also, use the constants in the dshlib.h in this code.
  *      SH_CMD_MAX              maximum buffer size for user input
  *      EXIT_CMD                constant that terminates the dsh program
  *      SH_PROMPT               the shell prompt
@@ -47,21 +47,21 @@ int last_rc = 0;
  *      WARN_NO_CMDS            the user command was empty
  *      ERR_TOO_MANY_COMMANDS   too many pipes used
  *      ERR_MEMORY              dynamic memory management failure
- * 
+ *
  *   errors returned
  *      OK                     No error
  *      ERR_MEMORY             Dynamic memory management failure
  *      WARN_NO_CMDS           No commands parsed
  *      ERR_TOO_MANY_COMMANDS  too many pipes used
- *   
+ *
  *   console messages
  *      CMD_WARN_NO_CMD        print on WARN_NO_CMDS
  *      CMD_ERR_PIPE_LIMIT     print on ERR_TOO_MANY_COMMANDS
  *      CMD_ERR_EXECUTE        print on execution failure of external command
- * 
+ *
  *  Standard Library Functions You Might Want To Consider Using (assignment 1+)
  *      malloc(), free(), strlen(), fgets(), strcspn(), printf()
- * 
+ *
  *  Standard Library Functions You Might Want To Consider Using (assignment 2+)
  *      fork(), execvp(), exit(), chdir()
  */
@@ -102,7 +102,7 @@ int alloc_cmd_buff(cmd_buff_t *cmd_buff)
 
     cmd_buff->input_file = NULL;
     cmd_buff->output_file = NULL;
-    cmd_buff->outputAppendMode = 0;
+    cmd_buff->append_mode = 0;
 
     return OK;
 }
@@ -128,7 +128,7 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff)
 
     cmd_buff->input_file = NULL;
     cmd_buff->output_file = NULL;
-    cmd_buff->outputAppendMode = 0;
+    cmd_buff->append_mode = 0;
     return OK;
 }
 
@@ -222,7 +222,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
             }
             if (currentArgumentIndex + 1 < argc) {
                 cmd_buff->output_file = cmd_buff->argv[currentArgumentIndex + 1];
-                cmd_buff->outputAppendMode = 0;
+                cmd_buff->append_mode = 0;
                 currentArgumentIndex++;
             } else {
                 return -4;
@@ -233,7 +233,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff)
             }
             if (currentArgumentIndex + 1 < argc) {
                 cmd_buff->output_file = cmd_buff->argv[currentArgumentIndex + 1];
-                cmd_buff->outputAppendMode = 1;
+                cmd_buff->append_mode = 1;
                 currentArgumentIndex++;
             } else {
                 return -4;
@@ -350,14 +350,14 @@ Built_In_Cmds match_command(const char *input)
 
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
     Built_In_Cmds cmd_type = match_command(cmd->argv[0]);
-    int rc = BI_NOT_BI; 
+    int rc = BI_NOT_BI;
 
     if (cmd_type == BI_CMD_EXIT) {
-        rc = BI_CMD_EXIT; 
+        rc = BI_CMD_EXIT;
     } else if (cmd_type == BI_CMD_DRAGON) {
-        handle_redirection(cmd); 
-        print_dragon(); 
-        rc = BI_EXECUTED; 
+        handle_redirection(cmd);
+        print_dragon();
+        rc = BI_EXECUTED;
     } else if (cmd_type == BI_CMD_CD) {
         if (cmd->argc == 1) {
             rc = BI_EXECUTED;
@@ -371,9 +371,9 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
             rc = BI_EXECUTED;
         }
     } else if (cmd_type == BI_RC) {
-        handle_redirection(cmd); 
-        printf("%d\n", last_rc); 
-        rc = BI_EXECUTED; 
+        handle_redirection(cmd);
+        printf("%d\n", last_rc);
+        rc = BI_EXECUTED;
     } else {
         rc = BI_NOT_BI;
     }
@@ -399,7 +399,7 @@ void handle_redirection(cmd_buff_t *cmd) {
     }
     if (cmd->output_file!=NULL) {
         int fd_out;
-        if (cmd->outputAppendMode)
+        if (cmd->append_mode)
             fd_out = open(cmd->output_file, O_WRONLY | O_CREAT | O_APPEND , 0644);
         else
             fd_out = open(cmd->output_file, O_WRONLY | O_CREAT | O_TRUNC , 0644);

@@ -25,7 +25,7 @@ typedef struct cmd_buff
     char *_cmd_buffer;
     char *input_file;  // extra credit, stores input redirection file (for `<`)
     char *output_file; // extra credit, stores output redirection file (for `>`)
-    bool outputAppendMode; // extra credit, sets append mode fomr output_file
+    bool append_mode; // extra credit, sets append mode fomr output_file
 } cmd_buff_t;
 
 typedef struct command_list{
@@ -75,7 +75,7 @@ typedef enum {
     BI_NOT_BI,
     BI_EXECUTED,
     BI_NOT_IMPLEMENTED,
-    BI_RC
+    BI_RC,
 } Built_In_Cmds;
 Built_In_Cmds match_command(const char *input); 
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd);
